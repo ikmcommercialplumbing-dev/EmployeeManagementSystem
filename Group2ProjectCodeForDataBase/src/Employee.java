@@ -1,48 +1,61 @@
-public class Employee extends Person{
-    private int ID;
-    private double Salary;
-    private String SSN;
-    private String HireDate;
+public class Employee extends Person {
+    private int id;
+    private double salary;
+    private String ssn;
+    private String hireDate;
 
-
-    public Employee(String Fname,String Lname,String Email,int ID,double Salary,String SSN,String Hiredate){
-        super(Fname,Lname,Email);
-        this.ID=ID;
-        this.Salary=Salary;
-        this.SSN=SSN;
-        this.HireDate=Hiredate;
-    }
-
-    public int getID(){
-        return ID;
-    }
-
-    public double getSalary(){
-        return Salary;
-
-    }
-    public void setSalary(double NewSalary){
-        this.Salary=NewSalary;
-    }
-    public String getSSN(){
-        return SSN;
-    }
-    public void setSSN(String NewSSN){
-        this.SSN=NewSSN;
+    public Employee(String f, String l, String e, int id, double s, String ssn, String date) {
+        super(f, l, e);
+        this.id = id;
+        this.salary = s;
+        this.ssn = ssn;
+        this.hireDate = date;
     }
 
 
-    public String getHireDate(){
-        return HireDate;
-    }
-    public void setHireDate(String NewHireDate){
-        this.HireDate=NewHireDate;
+    public Employee(String f, String l, String e, double s, String ssn, String date) {
+        super(f, l, e);
+        this.id = 0;
+        this.salary = s;
+        this.ssn = ssn;
+        this.hireDate = date;
     }
 
+    public int getID() {
+        return id;
+    }
+    public void setId(int id){
+        this.id=id;
+    }
+
+    public double getSalary() {
+        return salary;
+    }
+
+    public void setSalary(double newSalary) {
+        this.salary = newSalary;
+    }
+
+    public String getSSN() {
+        return ssn;
+    }
+
+    public void setSSN(String newSSN) {
+        this.ssn = newSSN;
+    }
+
+    public String getHireDate() {
+        return hireDate;
+    }
+
+    public void setHireDate(String newHireDate) {
+        this.hireDate = newHireDate;
+    }
 
     @Override
-    public String GetRole(String Role) {
+    public String GetRole() {
         return "Full Time Employee";
-
     }
+
+
 }

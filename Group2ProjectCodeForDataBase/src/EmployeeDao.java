@@ -2,7 +2,6 @@ import java.sql.*;
 import java.util.ArrayList;
 
 public class EmployeeDao implements IEmployeeDao {
-    // Database Credentials
     private static final String URL = "jdbc:mysql://localhost:3306/group2erdb";
     private static final String USER = "root";
     private static final String PASSWORD = "Bangster1862";
@@ -11,7 +10,6 @@ public class EmployeeDao implements IEmployeeDao {
         return DriverManager.getConnection(URL, USER, PASSWORD);
     }
 
-    // --- 1. SEARCH ---
     @Override
     public void searchEmployee(String searchKey) {
         String sql = "SELECT e.*, d.Name as division_name, jt.job_title " +
@@ -45,7 +43,6 @@ public class EmployeeDao implements IEmployeeDao {
                 while (resultSet.next()) {
                     foundAny = true;
 
-                    // Extract all data from result set
                     String firstName = resultSet.getString("Fname");
                     String lastName = resultSet.getString("Lname");
                     int empId = resultSet.getInt("empid");
@@ -56,7 +53,6 @@ public class EmployeeDao implements IEmployeeDao {
                     String division = resultSet.getString("division_name");
                     String jobTitle = resultSet.getString("job_title");
 
-                    // Display formatted results
                     System.out.println("--------------------------------------------------");
                     System.out.println("FOUND EMPLOYEE: " + firstName + " " + lastName);
                     System.out.println("ID: " + empId + " | SSN: " + ssn);
@@ -77,7 +73,6 @@ public class EmployeeDao implements IEmployeeDao {
         }
     }
 
-    // --- 2. UPDATE ---
     @Override
     public void updateEmployee(Employee emp) {
         String sql = "UPDATE employees SET Fname=?, Lname=?, email=?, Salary=?, SSN=?, HireDate=? WHERE empid=?";
@@ -91,7 +86,7 @@ public class EmployeeDao implements IEmployeeDao {
             psmt.setDouble(4, emp.getSalary());
             psmt.setString(5, emp.getSSN());
             psmt.setString(6, emp.getHireDate());
-            psmt.setInt(7, emp.getID()); // Where clause
+            psmt.setInt(7, emp.getID());
 
             int rowsUpdated = psmt.executeUpdate();
             if (rowsUpdated > 0) {
@@ -105,17 +100,15 @@ public class EmployeeDao implements IEmployeeDao {
         }
     }
 
-    // --- 3. SALARY RAISE ---
     @Override
     public void applySalaryRaise(double percentage, double minSalary, double maxSalary) {
-        // SQL: Updates salary if it is Greater/Equal to Min AND Strictly Less Than Max
         String sql = "UPDATE employees SET Salary = Salary * (1.0 + (? / 100.0)) " +
                 "WHERE Salary >= ? AND Salary < ?";
 
         Connection conn = null;
         try {
             conn = getConnection();
-            conn.setAutoCommit(false); // Start Transaction
+            conn.setAutoCommit(false);
 
             try (PreparedStatement psmt = conn.prepareStatement(sql)) {
                 psmt.setDouble(1, percentage);
@@ -124,17 +117,16 @@ public class EmployeeDao implements IEmployeeDao {
 
                 int affected = psmt.executeUpdate();
 
-                conn.commit(); // Commit changes
                 System.out.println("✅ Salary raise applied!");
                 System.out.printf("   Range: $%.2f to $%.2f%n", minSalary, maxSalary);
                 System.out.println("   Employees updated: " + affected);
             }
 
         } catch (SQLException e) {
-            System.err.println("❌ Database Error: Transaction failed.");
+            System.err.println("Database Error: Transaction failed.");
             if (conn != null) {
                 try {
-                    conn.rollback(); // Rollback on error
+                    conn.rollback();
                     System.out.println("   Changes rolled back.");
                 } catch (SQLException ex) {
                     ex.printStackTrace();
@@ -181,22 +173,18 @@ public class EmployeeDao implements IEmployeeDao {
 //    }
 
     public int deleteEmployee(int targetId) throws SQLException {
-        // We must delete from child tables FIRST to avoid Foreign Key errors
         String deleteDivisions = "DELETE FROM employee_division WHERE empid = ?";
         String deleteJobs = "DELETE FROM employee_job_titles WHERE empid = ?";
         String deletePayroll = "DELETE FROM payroll WHERE empid = ?";
         String deleteEmployee = "DELETE FROM employees WHERE empid = ?";
 
-        // Use a single connection for all commands
         try (Connection conn = getConnection()) {
 
-            // 1. Delete Division Links
             try (PreparedStatement psmt = conn.prepareStatement(deleteDivisions)) {
                 psmt.setInt(1, targetId);
                 psmt.executeUpdate();
             }
 
-            // 2. Delete Job Title Links
             try (PreparedStatement psmt = conn.prepareStatement(deleteJobs)) {
                 psmt.setInt(1, targetId);
                 psmt.executeUpdate();
@@ -225,7 +213,7 @@ public class EmployeeDao implements IEmployeeDao {
 
     @Override
     public int addEmployee(Employee emp) {
-        // NOTE: We do NOT insert 'empid'. The database auto-increments it.
+
         String sql = "INSERT INTO employees (Fname, Lname, Email, Salary, SSN, HireDate) VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = getConnection();
@@ -249,15 +237,14 @@ public class EmployeeDao implements IEmployeeDao {
                     }
                 }
             }
-            return -1; // Failed to retrieve ID
+            return -1;
 
         } catch (SQLException e) {
             e.printStackTrace();
-            return -1; // Failed to insert
+            return -1;
         }
     }
 
-    // --- 7. GET ALL (Returns List) ---
     public ArrayList<Employee> getAllEmployees() throws SQLException {
         ArrayList<Employee> employeesList = new ArrayList<>();
         String sql = "SELECT * FROM employees";
@@ -286,7 +273,6 @@ public class EmployeeDao implements IEmployeeDao {
         }
     }
 
-    // --- REPORTS ---
     public void printEmployeeHistoryReport(int targetId) {
         String sql = "SELECT e.Fname, e.Lname, e.SSN, p.pay_date, p.earnings " +
                 "FROM employees e JOIN payroll p ON e.empid = p.empid " +
@@ -301,7 +287,6 @@ public class EmployeeDao implements IEmployeeDao {
                 boolean found = false;
                 while(rs.next()) {
                     found = true;
-                    // Simple output logic
                     System.out.printf("Date: %s | Pay: $%.2f%n", rs.getString("pay_date"), rs.getDouble("earnings"));
                 }
                 if(!found) System.out.println("No history found.");
@@ -357,7 +342,6 @@ public class EmployeeDao implements IEmployeeDao {
              ResultSet rs = psmt.executeQuery()) {
 
             System.out.println("\n=========================================================================================================================================");
-            // Print Table Header
             System.out.printf("%-5s | %-20s | %-25s | %-12s | %-11s | %-12s | %-15s | %-15s%n",
                     "ID", "NAME", "EMAIL", "SALARY", "SSN", "HIRED", "DIVISION", "JOB TITLE");
             System.out.println("-----------------------------------------------------------------------------------------------------------------------------------------");
@@ -397,7 +381,6 @@ public class EmployeeDao implements IEmployeeDao {
         printOptionList(sql, "JOB TITLES");
     }
 
-    // Helper to print options
     private void printOptionList(String sql, String title) {
         try (Connection conn = getConnection();
              PreparedStatement psmt = conn.prepareStatement(sql);
@@ -421,7 +404,6 @@ public class EmployeeDao implements IEmployeeDao {
         executeLinkInsert(sql, empid, jobTitleId);
     }
 
-    // Helper to avoid duplicate code for linking
     private void executeLinkInsert(String sql, int p1, int p2) {
         try (Connection conn = getConnection();
              PreparedStatement psmt = conn.prepareStatement(sql)) {

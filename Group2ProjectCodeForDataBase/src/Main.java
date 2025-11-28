@@ -15,7 +15,7 @@ public class Main {
             System.out.println("Loaded " + employeeInTheSystem.size() + " employees from database.");
         } catch (SQLException e) {
             System.out.println(" Warning: Could not load initial data. Database might be empty or unreachable.");
-            employeeInTheSystem = new ArrayList<>(); // Ensure list is not null
+            employeeInTheSystem = new ArrayList<>();
         }
 
         System.out.println("=== EMPLOYEE MANAGEMENT SYSTEM ===");
@@ -30,17 +30,16 @@ public class Main {
             System.out.println("6. Report: Total Pay by Job Title");
             System.out.println("7. Report: Employee History");
             System.out.println("8. Print All Employees (Table View)");
-            System.out.println("9. Delete Employee"); // Added missing menu item
+            System.out.println("9. Delete Employee");
             System.out.println("0. Exit");
             System.out.print("Enter choice: ");
 
-            // Safe integer input handling
             if (scanner.hasNextInt()) {
                 choice = scanner.nextInt();
-                scanner.nextLine(); // Consume newline
+                scanner.nextLine();
             } else {
                 System.out.println("Invalid input. Please enter a number.");
-                scanner.nextLine(); // Clear bad input
+                scanner.nextLine();
                 continue;
             }
 
@@ -60,14 +59,13 @@ public class Main {
                         break;
 
 
-                    case 2: // Update Employee Info
+                    case 2:
                         System.out.println("\n--- UPDATE EMPLOYEE ---");
                         dao.printOutEmployeeTable();
                         System.out.print("Enter Employee ID to Update: ");
                         int updateId = scanner.nextInt();
                         scanner.nextLine();
 
-                        // Get fresh object from DB to ensure accuracy
                         Employee empToUpdate = findInLocalList(updateId);
 
                         if (empToUpdate == null) {
@@ -108,7 +106,7 @@ public class Main {
                                             empToUpdate.setSSN(newSSN);
                                         } else {
                                             System.out.println(" Invalid SSN format. Must be 9 digits only.");
-                                            continue; // Don't proceed with update
+                                            continue;
                                         }
                                     case 7:
                                         System.out.println("--- Current Divisions ---");
@@ -116,7 +114,6 @@ public class Main {
                                         System.out.print("Enter New Division ID: ");
                                         int newDivId = scanner.nextInt();
                                         scanner.nextLine();
-                                        // Logic: Remove old link, add new link
                                         dao.updateEmployeeDivision(updateId, newDivId);
                                         System.out.println("Division updated.");
                                         break;
@@ -138,8 +135,7 @@ public class Main {
 
                                 if (subChoice != 0) {
                                     dao.updateEmployee(empToUpdate);
-                                    // Also update local list to match DB
-                                    // (Optional, but keeps memory consistent)
+
                                     Employee localRef = findInLocalList(updateId);
                                     if (localRef != null) {
 
@@ -276,17 +272,13 @@ public class Main {
         System.out.print("Enter Hire Date (YYYY-MM-DD): ");
         String hireDate = scanner.nextLine();
 
-        // 1. Create with ID 0
         Employee newEmployee = new Employee(fname, lname, email, 0, salary, ssn, hireDate);
 
-        // 2. Insert and Get New ID
         int newId = dao.addEmployee(newEmployee);
 
         if (newId != -1) {
-            // Update the object with the real ID
             newEmployee.setId(newId);
 
-            // Add to local list
             if (employeeInTheSystem != null) {
                 employeeInTheSystem.add(newEmployee);
             }
@@ -314,7 +306,7 @@ public class Main {
         scanner.nextLine();
         dao.linkemployejobtitles(targetId, jobTitleId);
 
-        System.out.println("\n✅ Setup Complete for Employee ID " + targetId);
+        System.out.println("\n Setup Complete for Employee ID " + targetId);
     }
 
     private static Employee findInLocalList(int targetId) {
@@ -334,6 +326,6 @@ public class Main {
         }
     }
     private static boolean isValidSSN(String ssn) {
-        return ssn != null && ssn.matches("\\d{9}"); // Exactly 9 digits
+        return ssn != null && ssn.matches("\\d{9}");
     }
 }

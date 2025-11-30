@@ -13,10 +13,10 @@ public interface IEmployeeDao {
     int deleteEmployee(int id) throws SQLException;
 
 
-    void printDivisionReport() throws SQLException;
-
-    void printEmployeeHistoryReport(int targetId) throws SQLException;
-
-    void printJobTitleReport() throws SQLException;
+//    void printDivisionReport() throws SQLException;
+//
+//    void printEmployeeHistoryReport(int targetId) throws SQLException;
+//
+//    void printJobTitleReport() throws SQLException;
 }
 

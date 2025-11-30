@@ -31,13 +31,14 @@ public class Main {
             System.out.println("\n-----------------------------------------");
             System.out.println("1. Search Employee (Name, ID, or SSN)");
             System.out.println("2. Update Employee Info");
-            System.out.println("3. Apply Salary Raise");
-            System.out.println("4. Add New Employee");
-            System.out.println("5. Report: Total Pay by Division");
-            System.out.println("6. Report: Total Pay by Job Title");
-            System.out.println("7. Report: Employee History");
-            System.out.println("8. Print All Employees (Table View)");
-            System.out.println("9. Delete Employee");
+            System.out.println("3. Apply Percentage Salary Raise");
+            System.out.println("4. Set Fixed Salary Below Threshold"); // NEW OPTION
+            System.out.println("5. Add New Employee");
+            System.out.println("6. Report: Total Pay by Division");
+            System.out.println("7. Report: Total Pay by Job Title");
+            System.out.println("8. Report: Employee History");
+            System.out.println("9. Print All Employees (Table View)");
+            System.out.println("10. Delete Employee");
             System.out.println("0. Exit");
             System.out.print("Enter choice: ");
 
@@ -61,30 +62,34 @@ public class Main {
                         break;
 
                     case 3:
-                        applySalaryRaiseUI(scanner);
+                        applyPercentageRaiseUI(scanner); // Percentage raise
                         break;
 
                     case 4:
-                        addEmployeeUI(scanner);
+                        setFixedSalaryBelowThresholdUI(scanner); // NEW: Fixed salary
                         break;
 
                     case 5:
-                        reportDao.printDivisionReport();
+                        addEmployeeUI(scanner);
                         break;
 
                     case 6:
-                        reportDao.printJobTitleReport();
+                        reportDao.printDivisionReport();
                         break;
 
                     case 7:
-                        printEmployeeHistoryUI(scanner);
+                        reportDao.printJobTitleReport();
                         break;
 
                     case 8:
-                        employeeDao.printOutEmployeeTable();
+                        printEmployeeHistoryUI(scanner);
                         break;
 
                     case 9:
+                        employeeDao.printOutEmployeeTable();
+                        break;
+
+                    case 10:
                         deleteEmployeeUI(scanner);
                         break;
 
@@ -103,12 +108,52 @@ public class Main {
         scanner.close();
     }
 
+    // NEW METHOD: For test case requirement "Update salary for all employees less than a particular amount"
+    private static void setFixedSalaryBelowThresholdUI(Scanner scanner) {
+        System.out.println("\n--- SET FIXED SALARY BELOW THRESHOLD ---");
+        employeeDao.printOutEmployeeTable();
+
+        double threshold = getSafeDoubleInput(scanner, "Enter Salary Threshold: ");
+        double newSalary = getSafeDoubleInput(scanner, "Enter New Fixed Salary: ");
+
+        // Validation from test cases
+        if (threshold < 0 || newSalary < 0) {
+            System.out.println("Error: Salary values cannot be Negative.");
+            return;
+        }
+
+        employeeDao.updateSalaryBelowThreshold(newSalary, threshold);
+    }
+
+    // RENAMED: To clarify it's percentage-based
+    private static void applyPercentageRaiseUI(Scanner scanner) {
+        System.out.println("\n--- APPLY PERCENTAGE SALARY RAISE ---");
+        employeeDao.printOutEmployeeTable();
+
+        double percentage = getSafeDoubleInput(scanner, "Enter Percentage (e.g. 3.2): ");
+
+        if (percentage < 0) {
+            System.out.println("Percentage cannot be negative.");
+            return;
+        }
+
+        System.out.println("\nDefine Salary Range:");
+        double minSal = getSafeDoubleInput(scanner, "Minimum Salary (0 for none): ");
+        double maxSal = getSafeDoubleInput(scanner, "Maximum Salary (e.g. 1000000): ");
+
+        if (minSal > maxSal) {
+            System.out.println(" Error: Min salary cannot be higher than Max salary.");
+        } else {
+            employeeDao.applySalaryRaise(percentage, minSal, maxSal);
+        }
+    }
+
+    // KEEP ALL YOUR EXISTING METHODS BELOW EXACTLY AS THEY ARE:
     private static void searchEmployeeUI(Scanner scanner) {
         System.out.println("\n--- SEARCH EMPLOYEE ---");
         employeeDao.printOutEmployeeTable();
         System.out.print("Enter Name, SSN, or ID: ");
         String searchKey = scanner.nextLine();
-
 
         if (searchKey == null || searchKey.trim().isEmpty()) {
             System.out.println(" Search criteria cannot be empty. Please enter Name, SSN, or ID.");
@@ -199,31 +244,7 @@ public class Main {
         }
     }
 
-    private static void applySalaryRaiseUI(Scanner scanner) {
-        System.out.println("\n--- BULK SALARY RAISE ---");
-        employeeDao.printOutEmployeeTable();
-
-        double percentage = getSafeDoubleInput(scanner, "Enter Percentage (e.g. 3.2): ");
-
-        if (percentage < 0) {
-            System.out.println("Percentage cannot be negative.");
-            System.out.println("Percentage cannot be negative.");
-            return;
-        }
-
-        System.out.println("\nDefine Salary Range:");
-        double minSal = getSafeDoubleInput(scanner, "Minimum Salary (0 for none): ");
-        double maxSal = getSafeDoubleInput(scanner, "Maximum Salary (e.g. 1000000): ");
-
-        if (minSal > maxSal) {
-            System.out.println(" Error: Min salary cannot be higher than Max salary.");
-        } else {
-            employeeDao.applySalaryRaise(percentage, minSal, maxSal);
-        }
-    }
-
     private static void addEmployeeUI(Scanner scanner) {
-
         System.out.println("\n--- ADD NEW EMPLOYEE ---");
         employeeDao.printOutEmployeeTable();
 
@@ -259,7 +280,6 @@ public class Main {
     }
 
     private static void printEmployeeHistoryUI(Scanner scanner) {
-
         System.out.print("Enter Employee ID to view history: ");
         int historyId = scanner.nextInt();
         scanner.nextLine();
@@ -324,7 +344,6 @@ public class Main {
 
         System.out.println("\n Setup Complete for Employee ID " + targetId);
         employeeDao.printOutEmployeeTable();
-
     }
 
     private static Employee findInLocalList(int targetId) {

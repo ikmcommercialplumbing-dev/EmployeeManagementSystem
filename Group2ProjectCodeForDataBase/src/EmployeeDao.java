@@ -115,16 +115,63 @@ public class EmployeeDao implements IEmployeeDao {
                 psmt.setDouble(3, maxSalary);
 
                 int affected = psmt.executeUpdate();
-
                 conn.commit();
 
-                System.out.println("✅ Salary raise applied!");
+                System.out.println("✅ Percentage salary raise applied!");
                 System.out.printf("   Range: $%.2f to $%.2f%n", minSalary, maxSalary);
                 System.out.println("   Employees updated: " + affected);
             }
 
         } catch (SQLException e) {
             System.err.println("❌ Database Error: Transaction failed.");
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                    System.out.println("   Changes rolled back.");
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            e.printStackTrace();
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+    }
+
+    public void updateSalaryBelowThreshold(double newSalary, double threshold) {
+        String sql = "UPDATE employees SET Salary = ? WHERE Salary < ?";
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement psmt = conn.prepareStatement(sql)) {
+                psmt.setDouble(1, newSalary);
+                psmt.setDouble(2, threshold);
+
+                int affected = psmt.executeUpdate();
+                conn.commit();
+
+                System.out.println("   Fixed salary update applied!");
+                System.out.println("   Threshold: $" + threshold);
+                System.out.println("   New Salary: $" + newSalary);
+                System.out.println("   Employees updated: " + affected);
+
+                if (affected == 0) {
+                    System.out.println("   No employees found below threshold.");
+                }
+            }
+
+        } catch (SQLException e) {
+            System.err.println(" Database Error: Transaction failed.");
             if (conn != null) {
                 try {
                     conn.rollback();

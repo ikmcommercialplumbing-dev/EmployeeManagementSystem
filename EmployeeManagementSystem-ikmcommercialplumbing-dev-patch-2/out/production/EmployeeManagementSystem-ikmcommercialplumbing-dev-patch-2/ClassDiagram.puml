@@ -1,0 +1,102 @@
+@startuml
+
+' Style settings to make it look professional
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+' --- 1. The Abstract Parent Class ---
+abstract class Person {
+    # String Fname
+    # String Lname
+    # String Email
+    + Person(String Fname, String Lname, String Email)
+    + {abstract} String GetRole()
+    + String getFname()
+    + void setFname(String Fname)
+    + String getLname()
+    + void setLname(String Lname)
+    + String getEmail()
+    + void setEmail(String Email)
+}
+
+' --- 2. The Concrete Child Class ---
+class Employee {
+    - int id
+    - double salary
+    - String ssn
+    - String hireDate
+    + Employee(String f, String l, String e, int id, double s, String ssn, String date)
+    + Employee(String f, String l, String e, double s, String ssn, String date)
+    + String GetRole()
+    + int getID()
+    + void setId(int id)
+    + double getSalary()
+    + void setSalary(double salary)
+    + String getSSN()
+    + void setSSN(String ssn)
+}
+
+' --- 3. The Interface ---
+interface IEmployeeDao {
+    + void searchEmployee(String searchKey)
+    + void updateEmployee(Employee emp)
+    + void applySalaryRaise(double percentage, double min, double max)
+    + int addEmployee(Employee emp)
+    + int deleteEmployee(int id)
+    + Employee getEmployeeById(int id)
+    + void printDivisionReport()
+    + void printJobTitleReport()
+    + void printEmployeeHistoryReport(int targetId)
+}
+
+' --- 4. The Implementation Class (Worker) ---
+class EmployeeDao {
+    - {static} String URL
+    - {static} String USER
+    - {static} String PASSWORD
+    - Connection getConnection()
+    + void searchEmployee(String searchKey)
+    + void updateEmployee(Employee emp)
+    + void applySalaryRaise(double percentage, double min, double max)
+    + int addEmployee(Employee emp)
+    + int deleteEmployee(int id)
+    + Employee getEmployeeById(int id)
+    + void printDivisionReport()
+    + void printJobTitleReport()
+    + void printEmployeeHistoryReport(int targetId)
+    + void linkingdivision(int empid, int divId)
+    + void linkemployejobtitles(int empid, int jobId)
+    + void printOutDivision()
+    + void printOutJobtitle()
+    + ArrayList<Employee> getAllEmployees()
+}
+
+' --- 5. The Main UI Class ---
+class Main {
+    - {static} ArrayList<Employee> employeeInTheSystem
+    + {static} void main(String[] args)
+    + {static} void addEmployeeUI(Scanner scanner, EmployeeDao dao)
+    + {static} void LinkingEmployeeUI(Scanner scanner, EmployeeDao dao, int targetId)
+    + {static} int getUpdateChoice(Scanner scanner)
+    - {static} Employee findInLocalList(int targetId)
+    - {static} void removeFromLocalList(Employee emp)
+}
+
+' --- RELATIONSHIPS ---
+
+' Inheritance: Employee IS A Person
+Person <|-- Employee
+
+' Realization: EmployeeDao IMPLEMENTS IEmployeeDao
+IEmployeeDao <|.. EmployeeDao
+
+' Association: Main uses EmployeeDao to do work
+Main ..> EmployeeDao : uses
+
+' Association: Main manages a list of Employees
+Main "1" *-- "*" Employee : contains list >
+
+' Dependency: EmployeeDao uses Employee objects for data transfer
+EmployeeDao ..> Employee : creates/updates
+
+@enduml

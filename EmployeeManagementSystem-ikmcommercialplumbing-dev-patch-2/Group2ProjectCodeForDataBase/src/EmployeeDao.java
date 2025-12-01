@@ -74,122 +74,182 @@ public class EmployeeDao implements IEmployeeDao {
 
     @Override
     public void updateEmployee(Employee emp) {
-        String sql = "UPDATE employees SET Fname=?, Lname=?, email=?, Salary=?, SSN=?, HireDate=? WHERE empid=?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement psmt = conn.prepareStatement(sql)) {
+        // 1. Load BEFORE data
+        String beforeSql = "SELECT Fname, Lname, Email, Salary, SSN, HireDate FROM employees WHERE empid=?";
+        String updateSql = "UPDATE employees SET Fname=?, Lname=?, email=?, Salary=?, SSN=?, HireDate=? WHERE empid=?";
 
-            psmt.setString(1, emp.getFname());
-            psmt.setString(2, emp.getLname());
-            psmt.setString(3, emp.getEmail());
-            psmt.setDouble(4, emp.getSalary());
-            psmt.setString(5, emp.getSSN());
-            psmt.setString(6, emp.getHireDate());
-            psmt.setInt(7, emp.getID());
+        try (Connection conn = getConnection()) {
 
-            int rowsUpdated = psmt.executeUpdate();
-            if (rowsUpdated > 0) {
-                System.out.println(" Employee updated successfully!");
-            } else {
-                System.out.println(" Update failed: ID " + emp.getID() + " not found.");
+            // Load BEFORE snapshot
+            String oldName = "", oldEmail = "", oldSSN = "", oldHire = "";
+            double oldSalary = 0;
+
+            try (PreparedStatement beforeStmt = conn.prepareStatement(beforeSql)) {
+                beforeStmt.setInt(1, emp.getID());
+                try (ResultSet rs = beforeStmt.executeQuery()) {
+                    if (rs.next()) {
+                        oldName = rs.getString("Fname") + " " + rs.getString("Lname");
+                        oldEmail = rs.getString("Email");
+                        oldSalary = rs.getDouble("Salary");
+                        oldSSN = rs.getString("SSN");
+                        oldHire = rs.getString("HireDate");
+                    }
+                }
+            }
+
+            // 2. Perform UPDATE
+            try (PreparedStatement psmt = conn.prepareStatement(updateSql)) {
+
+                psmt.setString(1, emp.getFname());
+                psmt.setString(2, emp.getLname());
+                psmt.setString(3, emp.getEmail());
+                psmt.setDouble(4, emp.getSalary());
+                psmt.setString(5, emp.getSSN());
+                psmt.setString(6, emp.getHireDate());
+                psmt.setInt(7, emp.getID());
+
+                int rowsUpdated = psmt.executeUpdate();
+
+                if (rowsUpdated > 0) {
+                    System.out.println("\n=== EMPLOYEE UPDATED SUCCESSFULLY ===");
+                    System.out.println("EMPLOYEE ID: " + emp.getID());
+
+                    System.out.println("\n--- BEFORE ---");
+                    System.out.println("Name:   " + oldName);
+                    System.out.println("Email:  " + oldEmail);
+                    System.out.println("Salary: $" + oldSalary);
+                    System.out.println("SSN:    " + oldSSN);
+                    System.out.println("Hired:  " + oldHire);
+
+                    System.out.println("\n--- AFTER ---");
+                    System.out.println("Name:   " + emp.getFname() + " " + emp.getLname());
+                    System.out.println("Email:  " + emp.getEmail());
+                    System.out.println("Salary: $" + emp.getSalary());
+                    System.out.println("SSN:    " + emp.getSSN());
+                    System.out.println("Hired:  " + emp.getHireDate());
+                    System.out.println("======================================\n");
+
+                } else {
+                    System.out.println(" Update failed: ID " + emp.getID() + " not found.");
+                }
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
+
 
     @Override
     public void applySalaryRaise(double percentage, double minSalary, double maxSalary) {
-        String sql = "UPDATE employees SET Salary = Salary * (1.0 + (? / 100.0)) " +
-                "WHERE Salary >= ? AND Salary <= ?";
 
-        Connection conn = null;
-        try {
-            conn = getConnection();
-            conn.setAutoCommit(false);
+        String beforeSql = "SELECT empid, Fname, Lname, Salary FROM employees WHERE Salary BETWEEN ? AND ?";
+        String updateSql = "UPDATE employees SET Salary = Salary * (1 + (? / 100)) WHERE Salary BETWEEN ? AND ?";
 
-            try (PreparedStatement psmt = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection()) {
+
+            System.out.println("\n=== BEFORE RAISE ===");
+            try (PreparedStatement beforeStmt = conn.prepareStatement(beforeSql)) {
+                beforeStmt.setDouble(1, minSalary);
+                beforeStmt.setDouble(2, maxSalary);
+                try (ResultSet rs = beforeStmt.executeQuery()) {
+                    boolean found = false;
+                    while (rs.next()) {
+                        found = true;
+                        System.out.printf("ID %d | %-15s | Salary: $%.2f%n",
+                                rs.getInt("empid"),
+                                rs.getString("Fname") + " " + rs.getString("Lname"),
+                                rs.getDouble("Salary"));
+                    }
+                    if (!found) {
+                        System.out.println("No employees in range.");
+                        return;
+                    }
+                }
+            }
+
+            // UPDATE
+            try (PreparedStatement psmt = conn.prepareStatement(updateSql)) {
                 psmt.setDouble(1, percentage);
                 psmt.setDouble(2, minSalary);
                 psmt.setDouble(3, maxSalary);
+                int updated = psmt.executeUpdate();
 
-                int affected = psmt.executeUpdate();
-                conn.commit();
+                // AFTER snapshot
+                System.out.println("\n=== AFTER RAISE ===");
+                try (PreparedStatement afterStmt = conn.prepareStatement(beforeSql)) {
+                    afterStmt.setDouble(1, minSalary);
+                    afterStmt.setDouble(2, maxSalary);
+                    try (ResultSet rs = afterStmt.executeQuery()) {
+                        while (rs.next()) {
+                            System.out.printf("ID %d | %-15s | New Salary: $%.2f%n",
+                                    rs.getInt("empid"),
+                                    rs.getString("Fname") + " " + rs.getString("Lname"),
+                                    rs.getDouble("Salary"));
+                        }
+                    }
+                }
 
-                System.out.println("✅ Percentage salary raise applied!");
-                System.out.printf("   Range: $%.2f to $%.2f%n", minSalary, maxSalary);
-                System.out.println("   Employees updated: " + affected);
+                System.out.println("\nEmployees updated: " + updated);
             }
 
         } catch (SQLException e) {
-            System.err.println("❌ Database Error: Transaction failed.");
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                    System.out.println("   Changes rolled back.");
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
             e.printStackTrace();
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                    conn.close();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
         }
     }
 
+
     public void updateSalaryBelowThreshold(double newSalary, double threshold) {
-        String sql = "UPDATE employees SET Salary = ? WHERE Salary < ?";
+        String selectSql = "SELECT empid, Fname, Lname, Salary FROM employees WHERE Salary < ?";
+        String updateSql = "UPDATE employees SET Salary = ? WHERE Salary < ?";
 
-        Connection conn = null;
-        try {
-            conn = getConnection();
-            conn.setAutoCommit(false);
+        try (Connection conn = getConnection()) {
 
-            try (PreparedStatement psmt = conn.prepareStatement(sql)) {
+            // 1. Load BEFORE snapshot
+            System.out.println("\n=== BEFORE UPDATE (Employees Below Threshold) ===");
+            try (PreparedStatement beforeStmt = conn.prepareStatement(selectSql)) {
+                beforeStmt.setDouble(1, threshold);
+                try (ResultSet rs = beforeStmt.executeQuery()) {
+                    boolean found = false;
+                    while (rs.next()) {
+                        found = true;
+                        System.out.printf("ID %d | %-15s | Salary: $%.2f%n",
+                                rs.getInt("empid"),
+                                rs.getString("Fname") + " " + rs.getString("Lname"),
+                                rs.getDouble("Salary"));
+                    }
+                    if (!found) {
+                        System.out.println("No employees below $" + threshold);
+                        return;
+                    }
+                }
+            }
+
+            try (PreparedStatement psmt = conn.prepareStatement(updateSql)) {
                 psmt.setDouble(1, newSalary);
                 psmt.setDouble(2, threshold);
 
                 int affected = psmt.executeUpdate();
-                conn.commit();
 
-                System.out.println("   Fixed salary update applied!");
-                System.out.println("   Threshold: $" + threshold);
-                System.out.println("   New Salary: $" + newSalary);
-                System.out.println("   Employees updated: " + affected);
-
-                if (affected == 0) {
-                    System.out.println("   No employees found below threshold.");
+                System.out.println("\n=== AFTER UPDATE ===");
+                try (PreparedStatement afterStmt = conn.prepareStatement(selectSql)) {
+                    afterStmt.setDouble(1, newSalary + 1);  // show any that were updated
+                    try (ResultSet rs = afterStmt.executeQuery()) {
+                        while (rs.next()) {
+                            System.out.printf("ID %d | %-15s | New Salary: $%.2f%n",
+                                    rs.getInt("empid"),
+                                    rs.getString("Fname") + " " + rs.getString("Lname"),
+                                    rs.getDouble("Salary"));
+                        }
+                    }
                 }
+
+                System.out.println("\nEmployees updated: " + affected);
             }
 
         } catch (SQLException e) {
-            System.err.println(" Database Error: Transaction failed.");
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                    System.out.println("   Changes rolled back.");
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
             e.printStackTrace();
-        } finally {
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true);
-                    conn.close();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
         }
     }
 

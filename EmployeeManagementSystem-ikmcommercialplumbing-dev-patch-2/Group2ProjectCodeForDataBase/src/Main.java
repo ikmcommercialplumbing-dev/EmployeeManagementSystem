@@ -1,3 +1,4 @@
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.sql.SQLException;
@@ -39,6 +40,7 @@ public class Main {
             System.out.println("8. Report: Employee History");
             System.out.println("9. Print All Employees (Table View)");
             System.out.println("10. Delete Employee");
+            System.out.println("11. RESET System (Rebuild Database)");
             System.out.println("0. Exit");
             System.out.print("Enter choice: ");
 
@@ -74,12 +76,13 @@ public class Main {
                         break;
 
                     case 6:
-                        reportDao.printDivisionReport();
+                        Printing_Division_MonthUI(scanner);
                         break;
 
                     case 7:
-                        reportDao.printJobTitleReport();
+                        Printing_JobTitle_MonthUI(scanner);
                         break;
+
 
                     case 8:
                         printEmployeeHistoryUI(scanner);
@@ -92,6 +95,9 @@ public class Main {
                     case 10:
                         deleteEmployeeUI(scanner);
                         break;
+
+                    case 11:
+                        resetDatabaseUI(scanner);
 
                     case 0:
                         System.out.println("Exiting System. Goodbye!");
@@ -246,24 +252,81 @@ public class Main {
 
     private static void addEmployeeUI(Scanner scanner) {
         System.out.println("\n--- ADD NEW EMPLOYEE ---");
-        employeeDao.printOutEmployeeTable();
 
-        System.out.print("Enter First Name: ");
-        String fname = scanner.nextLine();
+        String fname, lname, email, ssn, hireDate;
+        double salary;
 
-        System.out.print("Enter Last Name: ");
-        String lname = scanner.nextLine();
+        // First Name
+        while (true) {
+            System.out.print("Enter First Name: ");
+            fname = scanner.nextLine().trim();
+            if (!fname.isEmpty()) break;
+            System.out.println("First name cannot be empty.");
+        }
 
-        System.out.print("Enter Email: ");
-        String email = scanner.nextLine();
+        while (true) {
+            System.out.print("Enter Last Name: ");
+            lname = scanner.nextLine().trim();
+            if (!lname.isEmpty()) break;
+            System.out.println("Last name cannot be empty.");
+        }
 
-        double salary = getSafeDoubleInput(scanner, "Enter Salary: ");
+        while (true) {
+            System.out.print("Enter Email: ");
+            email = scanner.nextLine().trim();
 
-        System.out.print("Enter SSN: ");
-        String ssn = scanner.nextLine();
+            if (email.isEmpty()) {
+                System.out.println("Email cannot be empty.");
+                continue;
+            }
 
-        System.out.print("Enter Hire Date (YYYY-MM-DD): ");
-        String hireDate = scanner.nextLine();
+            if (!email.contains("@") || !email.contains(".")) {
+                System.out.println("Invalid email format. Try again.");
+                continue;
+            }
+
+            break;
+        }
+
+        while (true) {
+            System.out.print("Enter Salary: ");
+            if (scanner.hasNextDouble()) {
+                salary = scanner.nextDouble();
+                scanner.nextLine();
+
+                if (salary < 0) {
+                    System.out.println("Salary cannot be negative.");
+                    continue;
+                }
+                break;
+            } else {
+                System.out.println("Invalid salary. Enter a number.");
+                scanner.nextLine();
+            }
+        }
+
+        while (true) {
+            System.out.print("Enter SSN (9 digits, no dashes): ");
+            ssn = scanner.nextLine().trim();
+
+            if (!isValidSSN(ssn)) {
+                System.out.println("Invalid SSN. Must be 9 digits only.");
+                continue;
+            }
+            break;
+        }
+
+        while (true) {
+            System.out.print("Enter Hire Date (YYYY-MM-DD): ");
+            hireDate = scanner.nextLine().trim();
+
+            if (!hireDate.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                System.out.println("Invalid date format. Try again.");
+                continue;
+            }
+
+            break;
+        }
 
         Employee newEmployee = new Employee(fname, lname, email, 0, salary, ssn, hireDate);
 
@@ -272,13 +335,17 @@ public class Main {
         if (newId != -1) {
             newEmployee.setId(newId);
             employeeInTheSystem.add(newEmployee);
-            System.out.println(" Employee added! ID: " + newId);
+            System.out.println("\nEmployee added successfully! ID: " + newId);
+
             linkingEmployeeUI(scanner, newId);
+
         } else {
-            System.out.println(" Failed to add employee.");
+            System.out.println("\nERROR: Employee not added. Possible causes:");
+            System.out.println("- Duplicate SSN");
+            System.out.println("- Duplicate Email");
+            System.out.println("- Database error");
         }
     }
-
     private static void printEmployeeHistoryUI(Scanner scanner) {
         System.out.print("Enter Employee ID to view history: ");
         int historyId = scanner.nextInt();
@@ -310,22 +377,29 @@ public class Main {
     }
 
     public static int getUpdateChoice(Scanner scanner) {
-        System.out.println("\n--- UPDATE FIELD ---");
-        System.out.println("1. First Name");
-        System.out.println("2. Last Name");
-        System.out.println("3. Email");
-        System.out.println("4. Hire Date");
-        System.out.println("5. Salary");
-        System.out.println("6. SSN");
-        System.out.println("7. Division");
-        System.out.println("8. Job Title");
-        System.out.println("0. Return to Main Menu");
-        System.out.print("Select field: ");
+        while (true) {
+            try {
+                System.out.println("\n--- UPDATE FIELD ---");
+                System.out.println("1. First Name");
+                System.out.println("2. Last Name");
+                System.out.println("3. Email");
+                System.out.println("4. Hire Date");
+                System.out.println("5. Salary");
+                System.out.println("6. SSN");
+                System.out.println("7. Division");
+                System.out.println("8. Job Title");
+                System.out.println("0. Return to Main Menu");
+                System.out.print("Select field: ");
 
-        int subChoice = scanner.nextInt();
-        scanner.nextLine();
-        return subChoice;
+                int subChoice = Integer.parseInt(scanner.nextLine());
+                return subChoice;
+
+            } catch (Exception e) {
+                System.out.println("Invalid selection. Enter a number only.");
+            }
+        }
     }
+
 
     public static void linkingEmployeeUI(Scanner scanner, int targetId) {
         System.out.println("\n--- ASSIGN DIVISION & JOB TITLE ---");
@@ -382,4 +456,58 @@ public class Main {
     private static boolean isValidSSN(String ssn) {
         return ssn != null && ssn.matches("\\d{9}");
     }
+
+
+    public static void Printing_Division_MonthUI(Scanner scanner){
+        lookupDao.printAvailablePayrollMonths();
+
+        System.out.print("Please enter Year (YYYY): ");
+        int year = scanner.nextInt();
+        scanner.nextLine();
+
+        System.out.print("Please enter Month (1-12): ");
+        int month = scanner.nextInt();
+        scanner.nextLine();
+
+        reportDao.printDivisionReportByMonth(year, month);
+    }
+
+    public static void Printing_JobTitle_MonthUI(Scanner scanner) {
+        System.out.println("\n--- REPORT: TOTAL PAY BY JOB TITLE FOR MONTH ---");
+
+        lookupDao.printAvailablePayrollMonths();
+
+        System.out.print("Please enter Year (e.g., 2023): ");
+        int year = scanner.nextInt();
+        scanner.nextLine();
+
+        System.out.print("Please enter Month (1-12): ");
+        int month = scanner.nextInt();
+        scanner.nextLine();
+
+        if (month < 1 || month > 12) {
+            System.out.println(" Invalid month. Must be between 1 and 12.");
+            return;
+        }
+
+        reportDao.printJobTitleReportByMonth(year, month);
+    }
+    private static void resetDatabaseUI(Scanner scanner) {
+        System.out.println("\n⚠⚠ WARNING ⚠⚠");
+        System.out.println("This will DELETE ALL DATA and rebuild the database from scratch.");
+        System.out.print("Type 'RESET' to continue: ");
+
+        String confirm = scanner.nextLine();
+
+        if (!confirm.equalsIgnoreCase("RESET")) {
+            System.out.println("Reset cancelled.");
+            return;
+        }
+
+        DaoReset resetDao = new DaoReset();
+        resetDao.resetDatabase();
+    }
+
+
+
 }
